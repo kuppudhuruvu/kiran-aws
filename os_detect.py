@@ -24,8 +24,8 @@ def os_arch():
         for line in f.readlines():
             l = line.split('=')
             if l[0] == 'VERSION_ID':
-                os_ver = str(l[1].strip('"')).split('.')[0]
-        return(os_ver)
+                os_ver = str(l[1]).split('.')[0]
+        return(os_ver.strip('"'))
 
     except Exception as e:
         print(e)
@@ -80,7 +80,7 @@ def linux_centos_pkg_install():
         print("Can't change the Current Working Directory")
 
 
-def linux_centos_falcon_install():
+def linux_centos_falcon_install(rpm_name):
     try:
         pkg_status = ""
         child = subprocess.Popen("sudo rpm -qa | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
@@ -89,7 +89,7 @@ def linux_centos_falcon_install():
             pkg_status = output.decode("utf-8")
             print("falcon-sensor Package has already installed, ignoring...")
         else:
-            cmd = ["sudo", "yum", "install", "-y", "falcon-sensor"]
+            cmd = ["sudo", "rpm", "-ivh", rpm_name]
             p = subprocess.Popen(cmd)
             p.wait()
             if p.returncode == 0:
@@ -196,12 +196,46 @@ def install():
     if os_ver == 'ubuntu':
         ssm_status = linux_ubuntu_pkg_install()
         falcon_status = linux_ubuntu_falcon_install()
-    elif os_ver == 'centos' or os_ver == 'amzn' or os_ver == 'rhel':
+
+    elif os_ver == 'centos':
         ssm_status = linux_centos_pkg_install()
+        # Falcon based on os version
+        os_arch = os_arch()
+        if os_arch == '8':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el8.x86_64.rpm"
+        elif os_arch == '7':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el7.x86_64.rpm"
+        elif os_arch == '6':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el6.x86_64.rpm"
         falcon_status = linux_centos_falcon_install()
+
+    elif os_ver == 'amzn' :
+        ssm_status = linux_centos_pkg_install()
+        # Falcon based on os version
+        os_arch = os_arch()
+        if os_arch == '1':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.amzn1.x86_64.rpm"
+        elif os_arch == '2':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.amzn2.x86_64.rpm"
+        falcon_status = linux_centos_falcon_install(rpm_name)
+
+    elif os_ver == 'rhel':
+        ssm_status = linux_centos_pkg_install()
+        # Falcon based on os version
+        os_arch = os_arch()
+        if os_arch == '8':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el8.x86_64.rpm"
+        elif os_arch == '7':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el7.x86_64.rpm"
+        elif os_arch == '6':
+            rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el6.x86_64.rpm"
+        falcon_status = linux_centos_falcon_install(rpm_name)
+        
     else:
         print("unable to determine the os version")
         exit(1)
+
+    # Associate the Result in Dictionary    
     pkgstatus = {
         "amazon-ssm-agent": ssm_status,
         "falcon-sensor": falcon_status
@@ -212,3 +246,4 @@ def install():
 if __name__ == "__main__":
     pkgstatus = install()
     print(pkgstatus)
+    
