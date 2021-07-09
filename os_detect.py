@@ -99,7 +99,7 @@ def linux_centos_falcon_install(rpm_name):
                 pkg_status = output.decode("utf-8")
 
                 print("Pls wait, bringing up services")
-                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags="CLOUD"']
+                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags=CLOUD']
                 cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
                 cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
                 p = subprocess.Popen(cmd_register)
@@ -165,13 +165,13 @@ def linux_ubuntu_falcon_install():
             print("Falcon Sensor Package has already installed, ignoring...")
 
         else:
-            cmd  = ["sudo", "dpkg", "-i", "./falcon-sensor_6.24.0-12104_amd64.deb"]
+            cmd  = ["sudo", "dpkg", "-i", "/tmp/falcon-sensor_6.24.0-12104_amd64.deb"]
             p = subprocess.Popen(cmd)
             p.wait()
             if p.returncode == 0:
                 print("Falcon Sensor Package Installed Successfully")
                 print("Pls wait, bringing up services")
-                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags="CLOUD"']
+                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags=CLOUD']
                 cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
                 cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
                 p = subprocess.Popen(cmd_enable)
