@@ -12,14 +12,24 @@ def os_type():
             l = line.split('=')
             if l[0] == 'ID':
                 os_var = str(l[1].strip())
-        return(os_var)
+        return(os_var.strip('"'))
 
     except Exception as e:
         print(e)
 
 def os_arch():
-    detect_arch = platform.architecture()
-    return detect_arch
+    #detect_arch = platform.architecture()
+    try:
+        f = open('/etc/os-release')
+        for line in f.readlines():
+            l = line.split('=')
+            if l[0] == 'VERSION_ID':
+                os_ver = str(l[1].strip('"')).split('.')[0]
+        return(os_ver)
+
+    except Exception as e:
+        print(e)
+
 
 def os_machine():
     detect_machine = platform.machine().lower()
@@ -35,22 +45,75 @@ def os_processor_arch():
 
 def linux_centos_pkg_install():
     try:
-        cmd = ["sudo", "yum", "install", "-y", "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm"]
-        p = subprocess.Popen(cmd)
-        p.wait()
-        if p.returncode == 0:
-            print("Package Installed Successfully")
-            cmd_enable = ['sudo','systemctl', 'enable','amazon-ssm-agent']
-            cmd_start = ['sudo', 'systemctl' ,'start', 'amazon-ssm-agent']
-            p = subprocess.Popen(cmd_enable)
+        pkg_status = ""
+        child = subprocess.Popen("sudo rpm -qa | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
+        output = child.communicate()[0]
+
+        if output:
+            pkg_status = output.decode("utf-8")
+            print("amazon-ssm-agent Package has already installed, ignoring...")
+
+        else:    
+            cmd = ["sudo", "yum", "install", "-y", "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm"]
+            p = subprocess.Popen(cmd)
             p.wait()
-            p = subprocess.Popen(cmd_start)
-            p.wait()
-        else:
-            print("Something went wrong")
+            if p.returncode == 0:
+                print("amazon-ssm-agent Package has installed successfully")
+                child = subprocess.Popen("sudo rpm -qa | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
+                output = child.communicate()[0]
+                pkg_status = output.decode("utf-8")
+
+                '''
+                cmd_enable = ['sudo','systemctl', 'enable','amazon-ssm-agent']
+                cmd_start = ['sudo', 'systemctl' ,'start', 'amazon-ssm-agent']
+                p = subprocess.Popen(cmd_enable)
+                p.wait()
+                p = subprocess.Popen(cmd_start)
+                p.wait()
+                '''
+            else:
+                print("Something went wrong while installing amazon-ssm-agent")
+        
+        return pkg_status
 
     except OSError:
         print("Can't change the Current Working Directory")
+
+
+def linux_centos_falcon_install():
+    try:
+        pkg_status = ""
+        child = subprocess.Popen("sudo rpm -qa | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
+        output = child.communicate()[0]
+        if output:
+            pkg_status = output.decode("utf-8")
+            print("falcon-sensor Package has already installed, ignoring...")
+        else:
+            cmd = ["sudo", "yum", "install", "-y", "falcon-sensor"]
+            p = subprocess.Popen(cmd)
+            p.wait()
+            if p.returncode == 0:
+                print("falcon-sensor Package has installed successfully")
+                child = subprocess.Popen("sudo rpm -qa | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
+                output = child.communicate()[0]
+                pkg_status = output.decode("utf-8")
+
+                print("Pls wait, bringing up services")
+                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags="CLOUD"']
+                cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
+                cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
+                p = subprocess.Popen(cmd_enable)
+                p.wait()
+                p = subprocess.Popen(cmd_start)
+                p.wait()
+                print("Falcon service registered & started successfully.")
+            else:
+                print("Something went wrong while installing falcon-sensor")
+
+        return pkg_status
+
+    except Exception as e:
+        print(e)
 
 
 def linux_ubuntu_pkg_install():
@@ -59,20 +122,29 @@ def linux_ubuntu_pkg_install():
         #url =  "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb"
         #file_path, _ = urllib.request.urlretrieve(url, 'amazon-ssm-agent.deb')
         # sudo apt list --installed | grep tmux
-
-        child = subprocess.Popen("sudo apt list --installed | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
+        pkg_status = ""
+        child = subprocess.Popen("sudo snap list | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
-        if "installed" in output:
-            print("Package has already installed, ignoring...")
+
+        if output:
+            pkg_status = output.decode("utf-8") 
+            print("amazon-ssm-agent Package has already installed, ignoring...")
+
         else:
             #installation command
             cmd = ["sudo", "snap", "install", "amazon-ssm-agent", "--classic"]
             p = subprocess.Popen(cmd)
             p.wait()
             if p.returncode == 0:
-                print("Package Installed Successfully")
+                print("amazon-ssm-agent has Installed Successfully")
+                child = subprocess.Popen("sudo snap list | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
+                output = child.communicate()[0]
+                pkg_status = output.decode("utf-8") 
+
             else:
-                print("Something went wrong")
+                print("Something went wrong while installing amazon-ssm-agent")
+
+        return pkg_status
 
     except OSError:
         print("Can't change the Current Working Directory")
@@ -82,11 +154,13 @@ def linux_ubuntu_falcon_install():
     try:
         #sudo apt list --installed | grep falcon-sensor
         # falcon-sensor/now 6.24.0-12104 amd64 [installed,local]
-
+        pkg_status = ""
         child = subprocess.Popen("sudo apt list --installed | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
-        if "installed" in output:
-            print("Package has already installed, ignoring...")
+
+        if "installed" in str(output.decode("utf-8")):
+            pkg_status = output.decode("utf-8")
+            print("Falcon Sensor Package has already installed, ignoring...")
 
         else:
             cmd  = ["sudo", "dpkg", "-i", "./falcon-sensor_6.24.0-12104_amd64.deb"]
@@ -103,31 +177,38 @@ def linux_ubuntu_falcon_install():
                 p = subprocess.Popen(cmd_start)
                 p.wait()
                 print("Falcon service registered & started successfully.")
+                child = subprocess.Popen("sudo apt list --installed | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
+                output = child.communicate()[0]
+                pkg_status = output.decode("utf-8")
+
             else:
                 print("Something went wrong while installing Falcon Sensor")
         
+        return pkg_status
+
     except Exception as e:
         print(e)
 
-def main():
+def install():
     # Call os_type Method to Identify the OS from AWS Instance only.
     os_ver = os_type()
 
-    if os_ver == '"ubuntu"' or os_ver == 'ubuntu':
-        linux_ubuntu_pkg_install()
-    elif os_ver == '"amzn"' or os_ver == 'amzn':
-        linux_centos_pkg_install()
-    elif os_ver == '"centos"' or os_ver == 'centos':
-        linux_centos_pkg_install()
-    elif os_ver == '"amzn"' or os_ver == 'amzn':
-        linux_centos_pkg_install()
-    elif os_ver == '"rhel"' or os_ver == 'rhel':
-        linux_centos_pkg_install()
+    if os_ver == 'ubuntu':
+        ssm_status = linux_ubuntu_pkg_install()
+        falcon_status = linux_ubuntu_falcon_install()
+    elif os_ver == 'centos' or os_ver == 'amzn' or os_ver == 'rhel':
+        ssm_status = linux_centos_pkg_install()
+        falcon_status = linux_centos_falcon_install()
     else:
-        print("unable to determin the os verion")
+        print("unable to determine the os version")
         exit(1)
-
+    pkgstatus = {
+        "amazon-ssm-agent": ssm_status,
+        "falcon-sensor": falcon_status
+    }
+    return pkgstatus
 
 # Boiler Plate Code
 if __name__ == "__main__":
-    main()
+    pkgstatus = install()
+    print(pkgstatus)
