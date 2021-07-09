@@ -16,7 +16,7 @@ def os_type():
 
     except Exception as e:
         print(e)
-    
+
 def os_arch():
     detect_arch = platform.architecture()
     return detect_arch
@@ -32,7 +32,7 @@ def os_nodename():
 def os_processor_arch():
     detect_proc_arch = platform.processor().lower()
     return detect_proc_arch
-    
+
 def linux_centos_pkg_install():
     try:
         cmd = ["yum", "install", "-y", "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm"]
@@ -55,33 +55,36 @@ def linux_centos_pkg_install():
 
 def linux_ubuntu_pkg_install():
     try:
-        os.chdir("/tmp/")
-        url =  "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb"
-        file_path, _ = urllib.request.urlretrieve(url, 'amazon-ssm-agent.deb')
-        
+        #os.chdir("/tmp/")
+        #url =  "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb"
+        #file_path, _ = urllib.request.urlretrieve(url, 'amazon-ssm-agent.deb')
+
         #installation command
-        cmd = ['dpkg','-i','amazon-ssm-agent.deb']
+        cmd = ["snap", "install", "amazon-ssm-agent", "--classic"]
         p = subprocess.Popen(cmd)
         p.wait()
         if p.returncode == 0:
             print("Package Installed Successfully")
-            
+
         else:
             print("Something went wrong")
 
     except OSError:
         print("Can't change the Current Working Directory")
 
-
 def main():
     # Call os_type Method to Identify the OS from AWS Instance only.
     os_ver = os_type()
 
-    if os_ver == '"ubuntu"':
+    if os_ver == '"ubuntu"' or os_ver == 'ubuntu':
         linux_ubuntu_pkg_install()
-    elif os_ver == '"amzn"':
+    elif os_ver == '"amzn"' or os_ver == 'amzn':
         linux_centos_pkg_install()
-    elif os_ver == '"centos"':
+    elif os_ver == '"centos"' or os_ver == 'centos':
+        linux_centos_pkg_install()
+    elif os_ver == '"amzn"' or os_ver == 'amzn':
+        linux_centos_pkg_install()
+    elif os_ver == '"rhel"' or os_ver == 'rhel':
         linux_centos_pkg_install()
     else:
         print("unable to determin the os verion")
