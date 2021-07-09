@@ -17,19 +17,30 @@ def os_type():
     except Exception as e:
         print(e)
 
-def os_arch_ver():
+def os_arch_ver(ver):
     #detect_arch = platform.architecture()
-    try:
-        f = open('/etc/os-release')
-        for line in f.readlines():
-            l = line.split('=')
-            if l[0] == 'VERSION_ID':
-                os_ver = str(l[1]).split('.')[0]
-        return(os_ver.strip('"'))
+    if ver == 'rhel':
+        try:
+            f = open('/etc/os-release')
+            for line in f.readlines():
+                l = line.split('=')
+                if l[0] == 'VERSION_ID':
+                    os_ver = str(l[1]).split('.')[0]
+            return(os_ver.strip('"'))
 
-    except Exception as e:
-        print(e)
+        except Exception as e:
+            print(e)
+    elif ver == 'amzn':
+        try:
+            f = open('/etc/os-release')
+            for line in f.readlines():
+                l = line.split('=')
+                if l[0] == 'VERSION_ID':
+                    os_ver = str(l[1].strip())
+            return(os_ver.strip('"'))
 
+        except Exception as e:
+            print(e)
 
 def os_machine():
     detect_machine = platform.machine().lower()
@@ -216,17 +227,19 @@ def install():
     elif os_ver == 'amzn' :
         ssm_status = linux_centos_pkg_install()
         # Falcon based on os version
-        os_arch = os_arch_ver()
+        os_arch = os_arch_ver('amzn')
+
         if os_arch == '1':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.amzn1.x86_64.rpm"
         elif os_arch == '2':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.amzn2.x86_64.rpm"
+
         falcon_status = linux_centos_falcon_install(rpm_name)
 
     elif os_ver == 'rhel':
         ssm_status = linux_centos_pkg_install()
         # Falcon based on os version
-        os_arch = os_arch_ver()
+        os_arch = os_arch_ver('rhel')
         if os_arch == '8':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el8.x86_64.rpm"
         elif os_arch == '7':
@@ -251,3 +264,4 @@ def install():
 if __name__ == "__main__":
     pkgstatus = install()
     print(pkgstatus)
+    
