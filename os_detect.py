@@ -17,7 +17,7 @@ def os_type():
     except Exception as e:
         print(e)
 
-def os_arch():
+def os_arch_ver():
     #detect_arch = platform.architecture()
     try:
         f = open('/etc/os-release')
@@ -102,6 +102,8 @@ def linux_centos_falcon_install(rpm_name):
                 cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags="CLOUD"']
                 cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
                 cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
+                p = subprocess.Popen(cmd_register)
+                p.wait()
                 p = subprocess.Popen(cmd_enable)
                 p.wait()
                 p = subprocess.Popen(cmd_start)
@@ -200,7 +202,7 @@ def install():
     elif os_ver == 'centos':
         ssm_status = linux_centos_pkg_install()
         # Falcon based on os version
-        os_arch = os_arch()
+        os_arch = os_arch_ver()
         if os_arch == '8':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el8.x86_64.rpm"
         elif os_arch == '7':
@@ -212,7 +214,7 @@ def install():
     elif os_ver == 'amzn' :
         ssm_status = linux_centos_pkg_install()
         # Falcon based on os version
-        os_arch = os_arch()
+        os_arch = os_arch_ver()
         if os_arch == '1':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.amzn1.x86_64.rpm"
         elif os_arch == '2':
@@ -222,13 +224,14 @@ def install():
     elif os_ver == 'rhel':
         ssm_status = linux_centos_pkg_install()
         # Falcon based on os version
-        os_arch = os_arch()
+        os_arch = os_arch_ver()
         if os_arch == '8':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el8.x86_64.rpm"
         elif os_arch == '7':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el7.x86_64.rpm"
         elif os_arch == '6':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el6.x86_64.rpm"
+
         falcon_status = linux_centos_falcon_install(rpm_name)
         
     else:
@@ -246,4 +249,3 @@ def install():
 if __name__ == "__main__":
     pkgstatus = install()
     print(pkgstatus)
-    
