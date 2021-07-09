@@ -171,9 +171,11 @@ def linux_ubuntu_falcon_install():
             if p.returncode == 0:
                 print("Falcon Sensor Package Installed Successfully")
                 print("Pls wait, bringing up services")
-                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags="CLOUD"']
+                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags=CLOUD']
                 cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
                 cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
+                p = subprocess.Popen(cmd_register)
+                p.wait()
                 p = subprocess.Popen(cmd_enable)
                 p.wait()
                 p = subprocess.Popen(cmd_start)
