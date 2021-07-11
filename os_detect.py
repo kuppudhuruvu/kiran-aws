@@ -3,6 +3,21 @@ import os
 import urllib.request
 import subprocess
 
+"""
+This is the script to validate the amazon-ssm-agent package and falcon-sensor
+package has installed on servers. if not it will try to install from local and remote reo.
+Its a custom script created only for specific use case. Please check with author / maintainer 
+before using the script.
+"""
+
+# authorship information
+__author__      = "Kiran"
+__copyright__   = "Copyright 2021"
+__license__ = "All rights are Reserved"
+__version__ = "1.0.0"
+__maintainer__ = "Kiran"
+__email__ = ""
+__status__ = "Production"
 
 def os_type():
 
@@ -263,5 +278,5 @@ def install():
 # Boiler Plate Code
 if __name__ == "__main__":
     pkgstatus = install()
-    print(pkgstatus)
+    print(str(pkgstatus))
     
