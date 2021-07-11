@@ -8,21 +8,38 @@ from os_detect import install
 import sys
 import csv
 from os import listdir
+import select
+import ast
+import re
 
-'''
+"""
+This is the script to validate the amazon aws running instances and inventory to verify amazon-ssm-agent package 
+and falcon-sensor package has installed on servers. if not it will try to install from local and remote repo to 
+generate CSV report. Its a custom script created only for specific use case. Please check with author / maintainer 
+before using the script.
+
 Task are defined as below.
-
+============================
 # 1. Collect all Running EC2 Instances information
 # 2. Query all PEM Key file names that are associated with the EC2 Instance Ids that have been collected
 # 3. Create a csv report all relevant information `field_names`
 
-# Rules:
+Rules:
+=======
 1. Ensure to create the PEM folder and .pem files are kept under it
 2. Ensure to create the PACKAGES folder and all rpm are kept under it.
 3. Ensure to create the MODULES folder and keep the os_detect.py
+"""
 
-*** host ip added manually for testing only
-'''
+# authorship information
+__author__      = "Kiran"
+__copyright__   = "Copyright 2021"
+__license__ = "All rights are Reserved"
+__version__ = "1.0.0"
+__maintainer__ = "Kiran"
+__email__ = ""
+__status__ = "Production"
+
 
 def aws_running(ec2):
 
@@ -86,18 +103,33 @@ def login(ec2):
             hostip = ec2info[connect]['PrivateIP']
             key  = keystore[connect]
             ConnectionStatus = ec2info[connect]['ConnectionStatus']
-            ConnectionStatus = ServerConnection("13.232.44.10", key, ConnectionStatus)
+            ConnectionStatus, installStatus = ServerConnection(hostip, key, ConnectionStatus)
             if ConnectionStatus:
                 ec2info[connect]['ConnectionStatus'] = ConnectionStatus
             else:
                 ec2info[connect]['ConnectionStatus'] = False
+                        
+            if installStatus:
+                if installStatus['amazon-ssm-agent']:
+                    ec2info[connect]['Amazon-Ssm-Agent_Status'] = True
+                    ec2info[connect]['Amazon-Ssm-Agent_Version'] = installStatus['amazon-ssm-agent']
+                else:
+                    ec2info[connect]['Amazon-Ssm-Agent_Status'] = False
+                    ec2info[connect]['Amazon-Ssm-Agent_Version'] = None
+
+                if installStatus['falcon-sensor']:
+                    ec2info[connect]['Falcon-Sensor_Status'] = True
+                    ec2info[connect]['Falcon-Sensor_Version'] = installStatus['falcon-sensor']
+                else:
+                    ec2info[connect]['Falcon-Sensor_Status'] = False
+                    ec2info[connect]['Falcon-Sensor_Version'] = None
 
     return ec2info
 
 def ServerConnection(hostip, keystore, ConnectionStatus):
     loginuser = {'ubuntu', 'ec2-user', 'admin'}
     print("Trying to connect to {}".format(hostip))
-
+    install_status ={}
     if not ConnectionStatus:
         ConnectionStatus = False
 
@@ -132,8 +164,28 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
                         print("Unable to Copy the file.")
                 else:
                     print("Packages are not available to copy to target instance.")
+                
+                try:
+                    # os_detect script remote execution to install ssm , falcon packages and retrieve the installed version in dict.
+                    print("started os_detect package installation")
+                    operationCmd = str("python3 /tmp/os_detect.py")
+                    stdin, stdout, stderr = ssh.exec_command(operationCmd)
+                    # Wait for the command to terminate
+                    while not stdout.channel.exit_status_ready():
+                        # Only print data if there is data to read in the channel
+                        if stdout.channel.recv_ready():
+                            rl, wl, xl = select.select([stdout.channel], [], [], 0.0)
 
-                print("ssh connection closed")
+                            if len(rl) > 0:
+                                # Print data from stdout
+                                pkg_status = stdout.channel.recv(1024)
+                    print("Packages are installed / validated")
+                except Exception as e:
+                    print(e)
+
+                pattern = re.search('{.+.}',pkg_status.decode('utf-8'))
+                install_status = ast.literal_eval(pattern.group(0))
+
                 break
 
         except paramiko.AuthenticationException:
@@ -145,8 +197,10 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
         except Exception as e:
             #print(str(e))
             print("Could not SSH to {0} using {1}. might be server in stopped status or terminated." .format(hostip, user))
-           
-    return ConnectionStatus
+    
+    print("SSH connection closed")
+    ssh.close()
+    return ConnectionStatus, install_status
 
 
 def misc():
@@ -177,6 +231,8 @@ def csvreport(ec2info):
 
     except Exception as e:
         print(e)
+    
+    return report_name
 
 
 def main():
@@ -189,8 +245,9 @@ def main():
     ec2info = login(ec2)
 
     # Report Generation
-    csvreport(ec2info)
-
+    print("Generating Report")
+    report_name = csvreport(ec2info)
+    print("Report Generated as {}".format(report_name))
 
 # Boiler Plate 
 if __name__ == '__main__':
