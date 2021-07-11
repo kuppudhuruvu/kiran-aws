@@ -1,0 +1,39 @@
+Trying to connect to 10.109.46.244
+No existing session
+Could not SSH to 10.109.46.244 using ec2-user. might be server in stopped status or terminated.
+No existing session
+Could not SSH to 10.109.46.244 using admin. might be server in stopped status or terminated.
+Connected to 10.109.46.244
+sftp connection opened
+File Copy Completed.
+sftp connection closed
+started os_detect package installation
+Packages are installed / validated
+b"amazon-ssm-agent Package has already installed, ignoring...\nFalcon Sensor Package has already installed, ignoring...\n{'amazon-ssm-agent': 'amazon-ssm-agent  3.0.529.0  3552   latest/stable  aws*        classic\\n', 'falcon-sensor': 'falcon-sensor/now 6.24.0-12104 amd64 [installed,local]\\n'}\n"
+SSH connection closed
+Trying to connect to 10.109.46.249
+Connected to 10.109.46.249
+sftp connection opened
+File Copy Completed.
+sftp connection closed
+started os_detect package installation
+Packages are installed / validated
+b"amazon-ssm-agent Package has already installed, ignoring...\nfalcon-sensor Package has already installed, ignoring...\n{'amazon-ssm-agent': 'amazon-ssm-agent-3.0.1295.0-1.x86_64\\n', 'falcon-sensor': 'falcon-sensor-6.14.0-11110.el8.x86_64\\n'}\n"
+SSH connection closed
+Trying to connect to 10.109.46.253
+Connected to 10.109.46.253
+sftp connection opened
+File Copy Completed.
+sftp connection closed
+started os_detect package installation
+Packages are installed / validated
+SSH connection closed
+Trying to connect to 10.109.46.251
+Connected to 10.109.46.251
+sftp connection opened
+File Copy Completed.
+sftp connection closed
+started os_detect package installation
+Packages are installed / validated
+b"amazon-ssm-agent Package has already installed, ignoring...\nfalcon-sensor Package has already installed, ignoring...\n{'amazon-ssm-agent': 'amazon-ssm-agent-3.0.1295.0-1.x86_64\\n', 'falcon-sensor': 'falcon-sensor-6.14.0-11110.amzn2.x86_64\\n'}\n"
+SSH connection closed
