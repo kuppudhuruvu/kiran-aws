@@ -4,13 +4,13 @@ import os.path
 import os
 from collections import defaultdict
 import paramiko
-from os_detect import install
 import sys
 import csv
 from os import listdir
 import select
 import ast
 import re
+import json
 
 """
 This is the script to validate the amazon aws running instances and inventory to verify amazon-ssm-agent package 
@@ -72,7 +72,7 @@ def aws_running(ec2):
             ec2info[instance.id]['ConnectionStatus']  = "Instance ID: {} - SSH Key pair is not attached".format(ec2info[instance.id]['ID'])
             ec2info[instance.id]['PemFileAvailable'] = False
         else:
-            if str(ec2info[instance.id]['OSType']).lower() is not "windows":
+            if str(ec2info[instance.id]['OSType']).lower() != "windows":
 
                 if ec2info[instance.id]['SSHKeyName'].endswith('.pem'):
                     keypath = ec2info[instance.id]['SSHKeyName'].strip('.pem')
@@ -103,12 +103,12 @@ def login(ec2):
             hostip = ec2info[connect]['PrivateIP']
             key  = keystore[connect]
             ConnectionStatus = ec2info[connect]['ConnectionStatus']
-            ConnectionStatus, installStatus = ServerConnection(hostip, key, ConnectionStatus)
+            ConnectionStatus, installStatus = ServerConnection("15.206.68.196", key, ConnectionStatus)
             if ConnectionStatus:
                 ec2info[connect]['ConnectionStatus'] = ConnectionStatus
             else:
                 ec2info[connect]['ConnectionStatus'] = False
-                        
+            
             if installStatus:
                 if installStatus['amazon-ssm-agent']:
                     ec2info[connect]['Amazon-Ssm-Agent_Status'] = True
@@ -135,7 +135,6 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
 
     for user in loginuser:
         try:
-            
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             key = paramiko.RSAKey.from_private_key_file(keystore)
@@ -169,25 +168,31 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
                     # os_detect script remote execution to install ssm , falcon packages and retrieve the installed version in dict.
                     print("started os_detect package installation")
                     operationCmd = str("python3 /tmp/os_detect.py")
-                    stdin, stdout, stderr = ssh.exec_command(operationCmd)
+                    channel = ssh.get_transport().open_session()
+                    channel.exec_command(operationCmd)
+                    
                     # Wait for the command to terminate
-                    while not stdout.channel.exit_status_ready():
-                        # Only print data if there is data to read in the channel
-                        if stdout.channel.recv_ready():
-                            rl, wl, xl = select.select([stdout.channel], [], [], 0.0)
-
-                            if len(rl) > 0:
-                                # Print data from stdout
-                                pkg_status = stdout.channel.recv(1024)
+                    while True:
+                        if channel.exit_status_ready():
+                            break
+                    
                     print("Packages are installed / validated")
+
                 except Exception as e:
                     print(e)
 
-                pattern = re.search('{.+.}',pkg_status.decode('utf-8'))
-                install_status = ast.literal_eval(pattern.group(0))
-
+                sftp_client = ssh.open_sftp()
+                remote_file = sftp_client.open('/tmp/os_detect.out')
+                try:
+                    for line in remote_file:
+                        install_status = line      
+                        #print("remote:",install_status)   
+                finally:
+                    remote_file.close()
+                
+                install_status = json.loads(install_status)
                 break
-
+            
         except paramiko.AuthenticationException:
             print("Authentication failed when connecting to {0} using user {1}".format(hostip, user))
 
@@ -195,7 +200,7 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
             print("Could not SSH to {}. Connection is TimedOut." .format(hostip))
 
         except Exception as e:
-            #print(str(e))
+            print(str(e))
             print("Could not SSH to {0} using {1}. might be server in stopped status or terminated." .format(hostip, user))
     
     print("SSH connection closed")
