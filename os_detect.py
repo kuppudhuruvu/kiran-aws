@@ -2,6 +2,7 @@ import platform
 import os
 import urllib.request
 import subprocess
+import json
 
 """
 This is the script to validate the amazon-ssm-agent package and falcon-sensor
@@ -278,5 +279,14 @@ def install():
 # Boiler Plate Code
 if __name__ == "__main__":
     pkgstatus = install()
-    print(str(pkgstatus))
-    
+    out_path = str("/tmp/os_detect.out")
+    try:
+        if os.path.exists(out_path):
+            os.remove(out_path)
+
+        with open(out_path, "w") as fp:
+            json.dump(pkgstatus, fp)
+            print(pkgstatus)
+       
+    except Exception as e:
+        print(e)
