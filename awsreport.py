@@ -17,13 +17,11 @@ This is the script to validate the amazon aws running instances and inventory to
 and falcon-sensor package has installed on servers. if not it will try to install from local and remote repo to 
 generate CSV report. Its a custom script created only for specific use case. Please check with author / maintainer 
 before using the script.
-
 Task are defined as below.
 ============================
 # 1. Collect all Running EC2 Instances information
 # 2. Query all PEM Key file names that are associated with the EC2 Instance Ids that have been collected
 # 3. Create a csv report all relevant information `field_names`
-
 Rules:
 =======
 1. Ensure to create the PEM folder and .pem files are kept under it
@@ -66,6 +64,7 @@ def aws_running(ec2):
             'Amazon-Ssm-Agent_Version': '',
             'Falcon-Sensor_Status': '',
             'Falcon-Sensor_Version': '',
+            'OSVersion':'',
             }
 
         if ec2info[instance.id]['SSHKeyName'] == None:
@@ -103,7 +102,7 @@ def login(ec2):
             hostip = ec2info[connect]['PrivateIP']
             key  = keystore[connect]
             ConnectionStatus = ec2info[connect]['ConnectionStatus']
-            ConnectionStatus, installStatus = ServerConnection("15.206.68.196", key, ConnectionStatus)
+            ConnectionStatus, installStatus = ServerConnection("13.233.114.28", key, ConnectionStatus)
             if ConnectionStatus:
                 ec2info[connect]['ConnectionStatus'] = ConnectionStatus
             else:
@@ -123,6 +122,11 @@ def login(ec2):
                 else:
                     ec2info[connect]['Falcon-Sensor_Status'] = False
                     ec2info[connect]['Falcon-Sensor_Version'] = None
+                
+                if installStatus['os_name']:
+                    print(installStatus['os_name'])
+                    print(ec2info)
+                    ec2info[connect]['OSVersion'] = installStatus['os_name']
 
     return ec2info
 
@@ -198,10 +202,12 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
 
         except TimeoutError:
             print("Could not SSH to {}. Connection is TimedOut." .format(hostip))
+            break
 
         except Exception as e:
             print(str(e))
             print("Could not SSH to {0} using {1}. might be server in stopped status or terminated." .format(hostip, user))
+            break
     
     print("SSH connection closed")
     ssh.close()
@@ -226,7 +232,7 @@ def misc():
 def csvreport(ec2info):
     report_name = misc()
     csv_columns = ['ID', 'OSType', 'PrivateIP', 'SSHKeyName', 'PemFileAvailable', 'ConnectionStatus', 'Amazon-Ssm-Agent_Status',
-    'Amazon-Ssm-Agent_Version', 'Falcon-Sensor_Status', 'Falcon-Sensor_Version']
+    'Amazon-Ssm-Agent_Version', 'Falcon-Sensor_Status', 'Falcon-Sensor_Version', 'OSVersion']
     try:
         with open(report_name, 'w') as csvfile: 
             csvwriter = csv.DictWriter(csvfile, fieldnames=csv_columns)
