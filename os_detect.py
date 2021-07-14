@@ -28,7 +28,10 @@ def os_type():
             l = line.split('=')
             if l[0] == 'ID':
                 os_var = str(l[1].strip())
-        return(os_var.strip('"'))
+            
+            if l[0] == 'PRETTY_NAME':
+                os_name = str(l[1].strip())
+        return(os_var.strip('"'), os_name.strip('"'))
 
     except Exception as e:
         print(e)
@@ -82,8 +85,9 @@ def linux_centos_pkg_install():
 
         else:    
             cmd = ["sudo", "yum", "install", "-y", "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm"]
-            p = subprocess.Popen(cmd)
-            p.wait()
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE)
+            p.wait()            
             if p.returncode == 0:
                 print("amazon-ssm-agent Package has installed successfully")
                 child = subprocess.Popen("sudo rpm -qa | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
@@ -99,8 +103,12 @@ def linux_centos_pkg_install():
                 p.wait()
                 '''
             else:
+                output, errorcode = p.communicate()
+                if errorcode:
+                    pkg_status = errorcode.decode("utf-8")
+                print(pkg_status)
                 print("Something went wrong while installing amazon-ssm-agent")
-        
+
         return pkg_status
 
     except OSError:
@@ -117,7 +125,8 @@ def linux_centos_falcon_install(rpm_name):
             print("falcon-sensor Package has already installed, ignoring...")
         else:
             cmd = ["sudo", "rpm", "-ivh", rpm_name]
-            p = subprocess.Popen(cmd)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE)
             p.wait()
             if p.returncode == 0:
                 print("falcon-sensor Package has installed successfully")
@@ -137,6 +146,10 @@ def linux_centos_falcon_install(rpm_name):
                 p.wait()
                 print("Falcon service registered & started successfully.")
             else:
+                output,errorcode = p.communicate()
+                if errorcode:
+                    pkg_status = errorcode.decode("utf-8")
+                print(pkg_status)
                 print("Something went wrong while installing falcon-sensor")
 
         return pkg_status
@@ -162,7 +175,8 @@ def linux_ubuntu_pkg_install():
         else:
             #installation command
             cmd = ["sudo", "snap", "install", "amazon-ssm-agent", "--classic"]
-            p = subprocess.Popen(cmd)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE)
             p.wait()
             if p.returncode == 0:
                 print("amazon-ssm-agent has Installed Successfully")
@@ -171,6 +185,10 @@ def linux_ubuntu_pkg_install():
                 pkg_status = output.decode("utf-8") 
 
             else:
+                output, errorcode = p.communicate()
+                if errorcode:
+                    pkg_status = errorcode.decode("utf-8")
+                print(pkg_status)
                 print("Something went wrong while installing amazon-ssm-agent")
 
         return pkg_status
@@ -193,7 +211,8 @@ def linux_ubuntu_falcon_install():
 
         else:
             cmd  = ["sudo", "dpkg", "-i", "/tmp/falcon-sensor_6.24.0-12104_amd64.deb"]
-            p = subprocess.Popen(cmd)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE)
             p.wait()
             if p.returncode == 0:
                 print("Falcon Sensor Package Installed Successfully")
@@ -213,6 +232,10 @@ def linux_ubuntu_falcon_install():
                 pkg_status = output.decode("utf-8")
 
             else:
+                output, errorcode = p.communicate()
+                if errorcode:
+                    pkg_status = errorcode.decode("utf-8")
+                print(pkg_status)
                 print("Something went wrong while installing Falcon Sensor")
         
         return pkg_status
@@ -222,8 +245,8 @@ def linux_ubuntu_falcon_install():
 
 def install():
     # Call os_type Method to Identify the OS from AWS Instance only.
-    os_ver = os_type()
-
+    os_ver,os_name = os_type()
+    
     if os_ver == 'ubuntu':
         ssm_status = linux_ubuntu_pkg_install()
         falcon_status = linux_ubuntu_falcon_install()
@@ -238,7 +261,7 @@ def install():
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el7.x86_64.rpm"
         elif os_arch == '6':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el6.x86_64.rpm"
-        falcon_status = linux_centos_falcon_install()
+        falcon_status = linux_centos_falcon_install(rpm_name)
 
     elif os_ver == 'amzn' :
         ssm_status = linux_centos_pkg_install()
@@ -272,7 +295,8 @@ def install():
     # Associate the Result in Dictionary    
     pkgstatus = {
         "amazon-ssm-agent": ssm_status,
-        "falcon-sensor": falcon_status
+        "falcon-sensor": falcon_status,
+        "os_name": os_name
     }
     return pkgstatus
 
@@ -290,3 +314,4 @@ if __name__ == "__main__":
        
     except Exception as e:
         print(e)
+        
