@@ -76,6 +76,7 @@ def os_processor_arch():
 def linux_centos_pkg_install():
     try:
         pkg_status = ""
+        error_status = ""
         child = subprocess.Popen("sudo rpm -qa | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
 
@@ -105,11 +106,11 @@ def linux_centos_pkg_install():
             else:
                 output, errorcode = p.communicate()
                 if errorcode:
-                    pkg_status = errorcode.decode("utf-8")
-                print(pkg_status)
+                    error_status = errorcode.decode("utf-8")
+                print(error_status)
                 print("Something went wrong while installing amazon-ssm-agent")
 
-        return pkg_status
+        return pkg_status, error_status
 
     except OSError:
         print("Can't change the Current Working Directory")
@@ -118,6 +119,7 @@ def linux_centos_pkg_install():
 def linux_centos_falcon_install(rpm_name):
     try:
         pkg_status = ""
+        error_status =""
         child = subprocess.Popen("sudo rpm -qa | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
         if output:
@@ -148,11 +150,11 @@ def linux_centos_falcon_install(rpm_name):
             else:
                 output,errorcode = p.communicate()
                 if errorcode:
-                    pkg_status = errorcode.decode("utf-8")
-                print(pkg_status)
+                    error_status = errorcode.decode("utf-8")
+                print(error_status)
                 print("Something went wrong while installing falcon-sensor")
 
-        return pkg_status
+        return pkg_status, error_status
 
     except Exception as e:
         print(e)
@@ -165,6 +167,7 @@ def linux_ubuntu_pkg_install():
         #file_path, _ = urllib.request.urlretrieve(url, 'amazon-ssm-agent.deb')
         # sudo apt list --installed | grep tmux
         pkg_status = ""
+        error_status= ""
         child = subprocess.Popen("sudo snap list | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
 
@@ -187,11 +190,11 @@ def linux_ubuntu_pkg_install():
             else:
                 output, errorcode = p.communicate()
                 if errorcode:
-                    pkg_status = errorcode.decode("utf-8")
-                print(pkg_status)
+                    error_status = errorcode.decode("utf-8")
+                print(error_status)
                 print("Something went wrong while installing amazon-ssm-agent")
 
-        return pkg_status
+        return pkg_status,error_status
 
     except OSError:
         print("Can't change the Current Working Directory")
@@ -202,6 +205,7 @@ def linux_ubuntu_falcon_install():
         #sudo apt list --installed | grep falcon-sensor
         # falcon-sensor/now 6.24.0-12104 amd64 [installed,local]
         pkg_status = ""
+        error_status = ""
         child = subprocess.Popen("sudo apt list --installed | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
 
@@ -234,25 +238,25 @@ def linux_ubuntu_falcon_install():
             else:
                 output, errorcode = p.communicate()
                 if errorcode:
-                    pkg_status = errorcode.decode("utf-8")
-                print(pkg_status)
+                    error_status = errorcode.decode("utf-8")
+                print(error_status)
                 print("Something went wrong while installing Falcon Sensor")
         
-        return pkg_status
+        return pkg_status, error_status
 
     except Exception as e:
         print(e)
 
 def install():
     # Call os_type Method to Identify the OS from AWS Instance only.
-    os_ver,os_name = os_type()
+    os_ver, os_name = os_type()
     
     if os_ver == 'ubuntu':
-        ssm_status = linux_ubuntu_pkg_install()
-        falcon_status = linux_ubuntu_falcon_install()
+        ssm_status, ssm_error_status = linux_ubuntu_pkg_install()
+        falcon_status, falcon_error_status = linux_ubuntu_falcon_install()
 
     elif os_ver == 'centos':
-        ssm_status = linux_centos_pkg_install()
+        ssm_status, ssm_error_status = linux_centos_pkg_install()
         # Falcon based on os version
         os_arch = os_arch_ver()
         if os_arch == '8':
@@ -261,10 +265,10 @@ def install():
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el7.x86_64.rpm"
         elif os_arch == '6':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el6.x86_64.rpm"
-        falcon_status = linux_centos_falcon_install(rpm_name)
+        falcon_status, falcon_error_status = linux_centos_falcon_install(rpm_name)
 
     elif os_ver == 'amzn' :
-        ssm_status = linux_centos_pkg_install()
+        ssm_status, ssm_error_status = linux_centos_pkg_install()
         # Falcon based on os version
         os_arch = os_arch_ver('amzn')
 
@@ -273,10 +277,10 @@ def install():
         elif os_arch == '2':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.amzn2.x86_64.rpm"
 
-        falcon_status = linux_centos_falcon_install(rpm_name)
+        falcon_status, falcon_error_status = linux_centos_falcon_install(rpm_name)
 
     elif os_ver == 'rhel':
-        ssm_status = linux_centos_pkg_install()
+        ssm_status, ssm_error_status = linux_centos_pkg_install()
         # Falcon based on os version
         os_arch = os_arch_ver('rhel')
         if os_arch == '8':
@@ -286,7 +290,7 @@ def install():
         elif os_arch == '6':
             rpm_name = "/tmp/falcon-sensor-6.14.0-11110.el6.x86_64.rpm"
 
-        falcon_status = linux_centos_falcon_install(rpm_name)
+        falcon_status, falcon_error_status = linux_centos_falcon_install(rpm_name)
         
     else:
         print("unable to determine the os version")
@@ -295,7 +299,9 @@ def install():
     # Associate the Result in Dictionary    
     pkgstatus = {
         "amazon-ssm-agent": ssm_status,
+        "amazon-ssm-agent-error": ssm_error_status,
         "falcon-sensor": falcon_status,
+        "falcon-sensor-error": falcon_error_status,
         "os_name": os_name
     }
     return pkgstatus
@@ -314,4 +320,3 @@ if __name__ == "__main__":
        
     except Exception as e:
         print(e)
-        
