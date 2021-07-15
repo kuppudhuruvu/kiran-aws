@@ -104,7 +104,7 @@ def login(ec2):
             hostip = ec2info[connect]['PrivateIP']
             key  = keystore[connect]
             ConnectionStatus = ec2info[connect]['ConnectionStatus']
-            ConnectionStatus, installStatus = ServerConnection("13.233.114.28", key, ConnectionStatus)
+            ConnectionStatus, installStatus = ServerConnection(hostip, key, ConnectionStatus)
             if ConnectionStatus:
                 ec2info[connect]['ConnectionStatus'] = ConnectionStatus
             else:
