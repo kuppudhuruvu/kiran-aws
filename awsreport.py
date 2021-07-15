@@ -64,6 +64,8 @@ def aws_running(ec2):
             'Amazon-Ssm-Agent_Version': '',
             'Falcon-Sensor_Status': '',
             'Falcon-Sensor_Version': '',
+            'Amazon-Ssm-Agent_Error': '',
+            'Falcon-Sensor_Error': '',
             'OSVersion':'',
             }
 
@@ -112,20 +114,25 @@ def login(ec2):
                 if installStatus['amazon-ssm-agent']:
                     ec2info[connect]['Amazon-Ssm-Agent_Status'] = True
                     ec2info[connect]['Amazon-Ssm-Agent_Version'] = installStatus['amazon-ssm-agent']
-                else:
+                    
+
+                elif installStatus['amazon-ssm-agent-error']:
                     ec2info[connect]['Amazon-Ssm-Agent_Status'] = False
                     ec2info[connect]['Amazon-Ssm-Agent_Version'] = None
+                    ec2info[connect]['Amazon-Ssm-Agent_Error'] = installStatus['amazon-ssm-agent-error']
 
                 if installStatus['falcon-sensor']:
                     ec2info[connect]['Falcon-Sensor_Status'] = True
                     ec2info[connect]['Falcon-Sensor_Version'] = installStatus['falcon-sensor']
-                else:
+
+                elif installStatus['falcon-sensor-error']:
                     ec2info[connect]['Falcon-Sensor_Status'] = False
                     ec2info[connect]['Falcon-Sensor_Version'] = None
+                    ec2info[connect]['Falcon-Sensor_Error'] = installStatus['falcon-sensor-error']
                 
                 if installStatus['os_name']:
-                    print(installStatus['os_name'])
-                    print(ec2info)
+                    #print(installStatus['os_name'])
+                    #print(ec2info)
                     ec2info[connect]['OSVersion'] = installStatus['os_name']
 
     return ec2info
@@ -195,6 +202,7 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
                     remote_file.close()
                 
                 install_status = json.loads(install_status)
+                #print("trackeme", install_status)
                 break
             
         except paramiko.AuthenticationException:
@@ -231,8 +239,9 @@ def misc():
 
 def csvreport(ec2info):
     report_name = misc()
+    print(ec2info)
     csv_columns = ['ID', 'OSType', 'PrivateIP', 'SSHKeyName', 'PemFileAvailable', 'ConnectionStatus', 'Amazon-Ssm-Agent_Status',
-    'Amazon-Ssm-Agent_Version', 'Falcon-Sensor_Status', 'Falcon-Sensor_Version', 'OSVersion']
+    'Amazon-Ssm-Agent_Version', 'Falcon-Sensor_Status', 'Falcon-Sensor_Version', 'Amazon-Ssm-Agent_Error', 'Falcon-Sensor_Error', 'OSVersion']
     try:
         with open(report_name, 'w') as csvfile: 
             csvwriter = csv.DictWriter(csvfile, fieldnames=csv_columns)
