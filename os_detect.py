@@ -176,23 +176,45 @@ def linux_ubuntu_pkg_install():
             print("amazon-ssm-agent Package has already installed, ignoring...")
 
         else:
-            #installation command
-            cmd = ["sudo", "snap", "install", "amazon-ssm-agent", "--classic"]
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
-                           stderr=subprocess.PIPE)
-            p.wait()
-            if p.returncode == 0:
-                print("amazon-ssm-agent has Installed Successfully")
-                child = subprocess.Popen("sudo snap list | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
-                output = child.communicate()[0]
-                pkg_status = output.decode("utf-8") 
+            snapquery  = ["sudo", "snap", "find", "amazon-ssm-agent"]
+
+            if not snapquery:
+                print("Amazon-ssm-agent manual installation starts.")
+                url =  "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb"
+                file_path, _ = urllib.request.urlretrieve(url, 'amazon-ssm-agent.deb')
+                cmd  = ["sudo", "dpkg", "-i", file_path]
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p.wait()
+                if p.returncode == 0:
+                    print("amazon-ssm-agent package has installed successfully")
+                    output = p.communicate()[0]
+                    pkg_status = output.decode("utf-8") 
+
+                else:
+                    output, errorcode = p.communicate()
+                    if errorcode:
+                        error_status = errorcode.decode("utf-8")
+                    print(error_status)
+                    print("Something went wrong while manually installing amazon-ssm-agent")
 
             else:
-                output, errorcode = p.communicate()
-                if errorcode:
-                    error_status = errorcode.decode("utf-8")
-                print(error_status)
-                print("Something went wrong while installing amazon-ssm-agent")
+                # installation command
+                cmd = ["sudo", "snap", "install", "amazon-ssm-agent", "--classic"]
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                            stderr=subprocess.PIPE)
+                p.wait()
+                if p.returncode == 0:
+                    print("amazon-ssm-agent has Installed Successfully")
+                    child = subprocess.Popen("sudo snap list | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
+                    output = child.communicate()[0]
+                    pkg_status = output.decode("utf-8") 
+
+                else:
+                    output, errorcode = p.communicate()
+                    if errorcode:
+                        error_status = errorcode.decode("utf-8")
+                    print(error_status)
+                    print("Something went wrong while installing amazon-ssm-agent")
 
         return pkg_status,error_status
 
@@ -214,34 +236,61 @@ def linux_ubuntu_falcon_install():
             print("Falcon Sensor Package has already installed, ignoring...")
 
         else:
-            cmd  = ["sudo", "dpkg", "-i", "/tmp/falcon-sensor_6.24.0-12104_amd64.deb"]
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
-                           stderr=subprocess.PIPE)
-            p.wait()
-            if p.returncode == 0:
-                print("Falcon Sensor Package Installed Successfully")
-                print("Pls wait, bringing up services")
-                cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags=CLOUD']
-                cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
-                cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
-                p = subprocess.Popen(cmd_register)
-                p.wait()
-                p = subprocess.Popen(cmd_enable)
-                p.wait()
-                p = subprocess.Popen(cmd_start)
-                p.wait()
-                print("Falcon service registered & started successfully.")
-                child = subprocess.Popen("sudo apt list --installed | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
-                output = child.communicate()[0]
-                pkg_status = output.decode("utf-8")
+            depchild = subprocess.Popen("sudo apt list --installed | grep libnl-genl-3-dev", stdout=subprocess.PIPE, shell=True)
+            depoutput = depchild.communicate()[0]
+            deppkg_status = depoutput.decode("utf-8")
 
+            if not deppkg_status:
+                print("Dependency package has not found. Installing")
+                depcmd = ["sudo", "apt-get", "install", "-y", "libnl-genl-3-dev"]
+                dp = subprocess.Popen(depcmd, stdout=subprocess.PIPE, 
+                           stderr=subprocess.PIPE)
+                dp.wait()
+
+                print("Dependency package has installed")    
+                if dp.returncode == 0:
+
+                    cmd  = ["sudo", "dpkg", "-i", "/tmp/falcon-sensor_6.24.0-12104_amd64.deb"]
+                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE)
+                    p.wait()
+                    if p.returncode == 0:
+                        print("Falcon Sensor Package Installed Successfully")
+                        print("Pls wait, bringing up services")
+                        cmd_register = ['sudo', '/opt/CrowdStrike/falconctl', '-s', '-f', '--cid=EB0EF13C6EE44725BFAB1827AD937C29-8E', '--tags=CLOUD']
+                        cmd_enable = ['sudo','systemctl', 'enable','falcon-sensor']
+                        cmd_start = ['sudo', 'systemctl' ,'start', 'falcon-sensor']
+                        p = subprocess.Popen(cmd_register)
+                        p.wait()
+                        p = subprocess.Popen(cmd_enable)
+                        p.wait()
+                        p = subprocess.Popen(cmd_start)
+                        p.wait()
+                        print("Falcon service registered & started successfully.")
+                        child = subprocess.Popen("sudo apt list --installed | grep falcon-sensor", stdout=subprocess.PIPE, shell=True)
+                        output = child.communicate()[0]
+                        pkg_status = output.decode("utf-8")
+
+                    else:
+                        output, errorcode = p.communicate()
+                        if errorcode:
+                            error_status = errorcode.decode("utf-8")
+                        print(error_status)
+                        print("Something went wrong while installing Falcon Sensor")
+                else:
+                    output, errorcode = dp.communicate()
+                    if errorcode:
+                        error_status = errorcode.decode("utf-8")
+                    print(error_status)
+                    print("Something went wrong while installing dependency libnl-genl-3-dev")
+            
             else:
                 output, errorcode = p.communicate()
                 if errorcode:
-                    error_status = errorcode.decode("utf-8")
+                        error_status = errorcode.decode("utf-8")
                 print(error_status)
                 print("Something went wrong while installing Falcon Sensor")
-        
+
         return pkg_status, error_status
 
     except Exception as e:
