@@ -153,7 +153,13 @@ def linux_ubuntu_falcon_status():
 
 def pkg_validate():
     # Call os_type Method to Identify the OS from AWS Instance only.
+    inst_id = ""
     os_ver, os_name = os_type()
+    child  = subprocess.Popen("wget -q -O - http://169.254.169.254/latest/meta-data/instance-id",stdout=subprocess.PIPE, shell=True)
+    output = child.communicate()[0]
+    if output:
+        inst_id = output.decode("utf-8")
+
     falcon_status = ""
     ssm_status = ""
 
@@ -181,7 +187,8 @@ def pkg_validate():
     pkgstatus = {
         "amazon-ssm-agent": ssm_status,
         "falcon-sensor": falcon_status,
-        "os_name": os_name
+        "os_name": os_name,
+        "instance_id": inst_id
     }
     return pkgstatus
 
