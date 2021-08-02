@@ -159,7 +159,7 @@ def login(ec2info, keystore):
             ec2info[connect]['loginuser'] = username
             ec2info[connect]['ConnectionStatus'] = ConnectionStatus
 
-    #print("may i know ", ec2info)
+    return ec2info
 
 def ServerConnection(hostip, keystore, ConnectionStatus):
     loginuser = {'ubuntu', 'ec2-user', 'admin'}
@@ -176,7 +176,7 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             key = paramiko.RSAKey.from_private_key_file(keystore)
-            ssh.connect(hostname=hostip, username=user, pkey=key)
+            ssh.connect(hostname=hostip, username=user, pkey=key, timeout=5)
             
             if ssh.get_transport().is_active() == False:
                 continue
@@ -227,10 +227,11 @@ def merger(ec2info, host_result):
 
         if ec2info[key]['ConnectionStatus'] == True:
                 
-                ec2info[key]['OSVersion'] = host_result[key]['os_name']
-                print("here", host_result[key])
-                print(host_result[key]['amazon-ssm-agent'])
-                print(host_result[key]['falcon-sensor'])
+                if host_result[key]['os_name']:
+                    ec2info[key]['OSVersion'] = host_result[key]['os_name']
+                    # print("here", host_result[key])
+                    # print(host_result[key]['amazon-ssm-agent'])
+                    # print(host_result[key]['falcon-sensor'])
 
                 if host_result[key]['amazon-ssm-agent']:
                     ec2info[key]['Amazon-Ssm-Agent_Status'] = True
@@ -244,7 +245,7 @@ def merger(ec2info, host_result):
                 else:
                     ec2info[key]['Falcon-Sensor_Status'] = False
                     
-                print("new", ec2info[key])
+                # print("new", ec2info[key])
                 
     return ec2info
 
@@ -282,12 +283,12 @@ def main():
     #print("ec2info", ec2info) 
     #print("keystore", keystore)
    
-    login(ec2info, keystore)
-    print("ec2info", ec2info)
+    ec2info = login(ec2info, keystore)
+    #print("ec2info", ec2info)
 
     host_result = login_check(ec2info, keystore)
 
-    print("host_result", host_result)
+    #print("host_result", host_result)
 
     # Merger Method Calling
     ec2info_final = merger(ec2info, host_result)
