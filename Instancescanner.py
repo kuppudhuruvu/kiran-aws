@@ -44,15 +44,15 @@ def read_instance():
     return inst_id
 
 # 
-def aws_running(ec2, inst_id):
+def aws_running(ec2):
 
     # Declare local variables
     ec2info = {}
     keystore = {}
     # Get Running Instances
-    #running_instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
+    running_instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
     
-    running_instances = ec2.instances.filter(InstanceIds=inst_id)
+    # running_instances = ec2.instances.filter(InstanceIds=inst_id)
 
     for instance in running_instances:
         if instance.platform:
@@ -244,7 +244,7 @@ def merger(ec2info, host_result):
                 else:
                     ec2info[key]['Falcon-Sensor_Status'] = False
                     
-                #print("new", ec2info[key])
+                print("new", ec2info[key])
                 
     return ec2info
 
@@ -271,10 +271,10 @@ def main():
     ec2 = boto3.resource('ec2')
 
     # Read Instance ID 
-    inst_id = read_instance()
+    # inst_id = read_instance()
 
     # aws Running status
-    ec2info, keystore = aws_running(ec2, inst_id)
+    ec2info, keystore = aws_running(ec2)
 
     # login method calling
     # ec2info = login(ec2info, keystore)
@@ -283,11 +283,11 @@ def main():
     #print("keystore", keystore)
    
     login(ec2info, keystore)
-    #print("ec2info", ec2info)
+    print("ec2info", ec2info)
 
     host_result = login_check(ec2info, keystore)
 
-    #print("host_result", host_result)
+    print("host_result", host_result)
 
     # Merger Method Calling
     ec2info_final = merger(ec2info, host_result)
