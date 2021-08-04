@@ -17,9 +17,18 @@ from gevent import joinall
 
 """
 Instance Scanner:
-    Verify the Listed Instance State.
+    1. Run the Scan against the active aws account and filter the running Instances
+    2. Compose Data Format for every running status detected instances.
+    3. Validate PEM file availability and Connection status for login user.
+    4. Ignore Windows hosts, PEM file not available hosts.
+    5. Copy the pkgdetector.py to the validate Instances
+    6. Run the pkgdetector.py on remote hosts where the script was copied
+    7. All the instances copy and running pkgdetector will execute parallely
+    8. Join all the parallel execution output based on instance_id.
+    9. Generate the Report for all instances with available data such as connectivity,
+       loginuser, pemfile name, ssm-agent , falcon-sensor pkg availability in csv format.
+    Note: This csv report will be used for missing package installation..
 
-    1. Read the Instance from Given CSV File.
 """
 
 # authorship information
