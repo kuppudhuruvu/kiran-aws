@@ -300,6 +300,14 @@ def linux_ubuntu_falcon_install():
 def install():
     # Call os_type Method to Identify the OS from AWS Instance only.
     os_ver, os_name = os_type()
+
+    child  = subprocess.Popen("wget -q -O - http://169.254.169.254/latest/meta-data/instance-id",stdout=subprocess.PIPE, shell=True)
+    output = child.communicate()[0]
+    if output:
+        inst_id = output.decode("utf-8")
+    
+    falcon_status = ""
+    ssm_status = ""
     
     if os_ver == 'ubuntu':
         ssm_status, ssm_error_status = linux_ubuntu_pkg_install()
@@ -352,7 +360,8 @@ def install():
         "amazon-ssm-agent-error": ssm_error_status,
         "falcon-sensor": falcon_status,
         "falcon-sensor-error": falcon_error_status,
-        "os_name": os_name
+        "os_name": os_name,
+        "instance_id": inst_id
     }
     return pkgstatus
 
