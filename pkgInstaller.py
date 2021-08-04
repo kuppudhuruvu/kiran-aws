@@ -66,7 +66,6 @@ def compose_instance(ec2info):
 
 
 def login_check(composed_instance):
-    hosts = ['13.232.227.245', '15.206.174.179']
 
     hosts = []
     host_config = []
@@ -76,8 +75,6 @@ def login_check(composed_instance):
         hosts.append(composed_instance[key]['PrivateIP'])
         host_config.append(HostConfig(user=composed_instance[key]['loginuser'], private_key=composed_instance[key]['SSHKeyName']))
     
-    hosts = ['13.127.116.196', '13.126.117.146']
-    print(host_config)
     if host_config:
         client = ParallelSSHClient(hosts,  host_config=host_config,  timeout=10)
         
