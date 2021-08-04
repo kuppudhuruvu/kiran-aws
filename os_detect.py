@@ -171,6 +171,7 @@ def linux_ubuntu_pkg_install():
         child = subprocess.Popen("sudo snap list | grep amazon-ssm-agent", stdout=subprocess.PIPE, shell=True)
         output = child.communicate()[0]
 
+
         if output:
             pkg_status = output.decode("utf-8") 
             print("amazon-ssm-agent Package has already installed, ignoring...")
