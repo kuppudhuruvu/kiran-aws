@@ -99,6 +99,7 @@ def aws_running(ec2):
 
             else:
                 ec2info[instance.id]['ConnectionStatus'] = False
+                ec2info[instance.id]['PemFileAvailable'] = False
                 ec2info[instance.id]['OSVersion'] = "Instance {} is Windows Host. Try RDP".format(ec2info[instance.id]['ID'])
 
     return ec2info, keystore
