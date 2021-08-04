@@ -1,14 +1,14 @@
-import boto3
 import csv
 import os.path
 import os
 from collections import defaultdict
-import paramiko
 import sys
 import csv
 from os import listdir
 import select
 import ast
+import boto3
+import paramiko
 import re
 import json
 from pssh.clients import ParallelSSHClient
@@ -43,7 +43,7 @@ def read_instance():
 
     return inst_id
 
-# 
+#
 def aws_running(ec2):
 
     # Declare local variables
@@ -51,7 +51,7 @@ def aws_running(ec2):
     keystore = {}
     # Get Running Instances
     running_instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name','Values': ['running']}])
-    
+
     # running_instances = ec2.instances.filter(InstanceIds=inst_id)
 
     for instance in running_instances:
@@ -76,7 +76,8 @@ def aws_running(ec2):
             }
 
         if ec2info[instance.id]['SSHKeyName'] == None:
-            ec2info[instance.id]['ConnectionStatus']  = "Instance ID: {} - SSH Key pair is not attached".format(ec2info[instance.id]['ID'])
+            ec2info[instance.id]['ConnectionStatus']  = False
+            ec2info[instance.id]['OSVersion']  = "Instance ID: {} - SSH Key pair is not attached".format(ec2info[instance.id]['ID'])
             ec2info[instance.id]['PemFileAvailable'] = False
         else:
             if str(ec2info[instance.id]['OSType']).lower() != "windows":
@@ -92,11 +93,13 @@ def aws_running(ec2):
                 if os.path.isfile(sshkeypath):
                     ec2info[instance.id]['PemFileAvailable'] = True
                 else:
-                    ec2info[instance.id]['ConnectionStatus'] = "PEM Key {} not found locally in the path".format(keypath)
+                    ec2info[instance.id]['ConnectionStatus'] = False
+                    ec2info[instance.id]['OSVersion'] = "PEM Key {} not found locally in the path".format(keypath)
                     ec2info[instance.id]['PemFileAvailable'] = False
 
             else:
-                ec2info[instance.id]['ConnectionStatus'] = "Instance {} is Windows Host. Try RDP".format(ec2info[instance.id]['ID'])
+                ec2info[instance.id]['ConnectionStatus'] = False
+                ec2info[instance.id]['OSVersion'] = "Instance {} is Windows Host. Try RDP".format(ec2info[instance.id]['ID'])
 
     return ec2info, keystore
 
@@ -104,7 +107,7 @@ def aws_running(ec2):
 def login_check(ec2info, keystore):
     #hosts = ['13.232.227.245', '15.206.174.179']
 
-    # hosts = []
+    hosts = []
     host_config = []
 
     # List Generation
@@ -112,10 +115,10 @@ def login_check(ec2info, keystore):
         if ec2info[connect]['ConnectionStatus'] == True:
             hosts.append(ec2info[connect]['PrivateIP'])
             host_config.append(HostConfig(user=ec2info[connect]['loginuser'], private_key=keystore[connect]))
-    
+
     if host_config:
-        client = ParallelSSHClient(hosts,  host_config=host_config,  timeout=10)
-        
+        client = ParallelSSHClient(hosts,  host_config=host_config)
+
         # Data Copy
         outcopy = client.scp_send('pkgdetector.py','/tmp/pkgdetector.py')
         joinall(outcopy, raise_error=True)
@@ -159,25 +162,25 @@ def login(ec2info, keystore):
             ec2info[connect]['loginuser'] = username
             ec2info[connect]['ConnectionStatus'] = ConnectionStatus
 
-    return ec2info
+    #print("may i know ", ec2info)
 
 def ServerConnection(hostip, keystore, ConnectionStatus):
-    loginuser = {'ubuntu', 'ec2-user', 'admin'}
+    loginuser = {'ubuntu', 'ec2-user', 'admin', 'dbadmin'}
     username = ""
-    
+
     print("Trying to connect to {}".format(hostip))
 
     if not ConnectionStatus:
         ConnectionStatus = False
-    
+
     for user in loginuser:
         try:
             #print(user,keystore, hostip)
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             key = paramiko.RSAKey.from_private_key_file(keystore)
-            ssh.connect(hostname=hostip, username=user, pkey=key, timeout=5)
-            
+            ssh.connect(hostname=hostip, username=user, pkey=key, timeout=10)
+
             if ssh.get_transport().is_active() == False:
                 continue
             else:
@@ -195,22 +198,22 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
 
         except Exception as e:
             print(e)
-        
+
         ssh.close()
-    
+
     print("SSH connection closed")
     ssh.close()
 
     return ConnectionStatus, username
 
-# misc 
+# misc
 def misc():
     # environment = boto3.client('sts').get_caller_identity().get('Account')
     # Account Details
     #environments = {
     #'330033715166': 'abcd',
     #}
-    # Report File 
+    # Report File
     report_name = 'Package_Detected_Scanned_Hosts_List.csv'
 
     # Verify the Report and remove if already exists
@@ -224,29 +227,25 @@ def misc():
 def merger(ec2info, host_result):
     for key, value in ec2info.items():
         #print(key, value)
-
+        #print(host_result)
         if ec2info[key]['ConnectionStatus'] == True:
-                
-                if host_result[key]['os_name']:
-                    ec2info[key]['OSVersion'] = host_result[key]['os_name']
-                    # print("here", host_result[key])
-                    # print(host_result[key]['amazon-ssm-agent'])
-                    # print(host_result[key]['falcon-sensor'])
 
-                if host_result[key]['amazon-ssm-agent']:
-                    ec2info[key]['Amazon-Ssm-Agent_Status'] = True
-                    ec2info[key]['Amazon-Ssm-Agent_Version'] = host_result[key]['amazon-ssm-agent']
-                else:
-                    ec2info[key]['Amazon-Ssm-Agent_Status'] = False
-                    
-                if host_result[key]['falcon-sensor']:
-                    ec2info[key]['Falcon-Sensor_Status'] = True
-                    ec2info[key]['Falcon-Sensor_Version'] = host_result[key]['falcon-sensor']
-                else:
-                    ec2info[key]['Falcon-Sensor_Status'] = False
-                    
-                # print("new", ec2info[key])
-                
+                if key in host_result.keys():
+
+                    ec2info[key]['OSVersion'] = host_result[key]['os_name']
+
+                    if host_result[key]['amazon-ssm-agent']:
+                        ec2info[key]['Amazon-Ssm-Agent_Status'] = True
+                        ec2info[key]['Amazon-Ssm-Agent_Version'] = host_result[key]['amazon-ssm-agent']
+                    else:
+                        ec2info[key]['Amazon-Ssm-Agent_Status'] = False
+
+                    if host_result[key]['falcon-sensor']:
+                        ec2info[key]['Falcon-Sensor_Status'] = True
+                        ec2info[key]['Falcon-Sensor_Version'] = host_result[key]['falcon-sensor']
+                    else:
+                        ec2info[key]['Falcon-Sensor_Status'] = False
+
     return ec2info
 
 # Report Generation
@@ -255,7 +254,7 @@ def csvreport(ec2info_final):
     csv_columns = ['ID', 'OSType', 'PrivateIP', 'SSHKeyName', 'PemFileAvailable', 'ConnectionStatus', 'Amazon-Ssm-Agent_Status',
     'Amazon-Ssm-Agent_Version', 'Falcon-Sensor_Status', 'Falcon-Sensor_Version', 'OSVersion', 'loginuser']
     try:
-        with open(report_name, 'w') as csvfile: 
+        with open(report_name, 'w') as csvfile:
             csvwriter = csv.DictWriter(csvfile, fieldnames=csv_columns)
             csvwriter.writeheader()
             for key, val in ec2info_final.items():
@@ -263,7 +262,7 @@ def csvreport(ec2info_final):
 
     except Exception as e:
         print(e)
-    
+
     return report_name
 
 
@@ -271,7 +270,7 @@ def csvreport(ec2info_final):
 def main():
     ec2 = boto3.resource('ec2')
 
-    # Read Instance ID 
+    # Read Instance ID
     # inst_id = read_instance()
 
     # aws Running status
@@ -280,10 +279,10 @@ def main():
     # login method calling
     # ec2info = login(ec2info, keystore)
 
-    #print("ec2info", ec2info) 
+    #print("ec2info", ec2info)
     #print("keystore", keystore)
-   
-    ec2info = login(ec2info, keystore)
+
+    login(ec2info, keystore)
     #print("ec2info", ec2info)
 
     host_result = login_check(ec2info, keystore)
@@ -301,6 +300,6 @@ def main():
     print("Report Generated as {}".format(report_name))
 
 
-# Boiler Plate 
+# Boiler Plate
 if __name__ == '__main__':
     main()
