@@ -82,6 +82,10 @@ def login_check(composed_instance):
         outcopy = client.scp_send('os_detect.py','/tmp/os_detect.py')
         joinall(outcopy, raise_error=True)
 
+        # RPM Copy
+        outcopy = client.scp_send('packages/','/tmp/', recurse=True)
+        joinall(outcopy, raise_error=True)
+
         # Remote Command Execution
         counter = 0
         host_result = {}
