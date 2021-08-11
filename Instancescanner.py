@@ -137,7 +137,7 @@ def login_check(ec2info, keystore):
         counter = 0
         host_result = {}
         cmd = 'python3 /tmp/pkgdetector.py'
-        output = client.run_command(cmd, return_list=True)
+        output = client.run_command(cmd, return_list=True, stop_on_errors=False)
         client.join(output)
         for host_out in output:
             # print(host_out.stdout)
@@ -189,7 +189,7 @@ def ServerConnection(hostip, keystore, ConnectionStatus):
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             key = paramiko.RSAKey.from_private_key_file(keystore)
-            ssh.connect(hostname=hostip, username=user, pkey=key, timeout=10)
+            ssh.connect(hostname=hostip, username=user, pkey=key)
 
             if ssh.get_transport().is_active() == False:
                 continue
