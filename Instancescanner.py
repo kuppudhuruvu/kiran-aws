@@ -119,6 +119,7 @@ def login_check(ec2info, keystore):
 
     hosts = []
     host_config = []
+    host_result = {}
 
     # List Generation
     for connect in ec2info:
