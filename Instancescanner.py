@@ -142,20 +142,21 @@ def login_check(ec2info, keystore):
         client.join(output)
         for host_out in output:
             # print(host_out.stdout)
-            for line in host_out.stdout:
-                t_var = ast.literal_eval(line.encode('utf-8').decode('ascii', 'ignore'))
-                host_result[t_var['instance_id']] = t_var
-                '''
-                counter = counter + 1
-                if counter == 1:
-                    host_result[line] = ""
-                    second_var = line
+            if host_out:
+                for line in host_out.stdout:
+                    t_var = ast.literal_eval(line.encode('utf-8').decode('ascii', 'ignore'))
+                    host_result[t_var['instance_id']] = t_var
+                    '''
+                    counter = counter + 1
+                    if counter == 1:
+                        host_result[line] = ""
+                        second_var = line
 
-                elif counter == 2:
-                    host_result[second_var] = line
-                    counter = 0
-                    second_var = ""
-                '''
+                    elif counter == 2:
+                        host_result[second_var] = line
+                        counter = 0
+                        second_var = ""
+                    '''
         #print(json.dumps(host_result))
 
     return host_result
