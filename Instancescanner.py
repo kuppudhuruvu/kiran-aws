@@ -32,15 +32,9 @@ Instance Scanner:
 """
 
 # authorship information
-__author__      = "Kiran"
-__copyright__   = "Copyright 2021"
-__license__ = "All rights are Reserved"
-__version__ = "1.0.0"
-__maintainer__ = "Kiran"
-__email__ = ""
-__status__ = "Production"
-
-
+__author__      = "Kiran Kumar Suran"
+__maintainer__  = "Kiran Kumar Suram"
+__email__       = "ksuram30@massmutual.com"
 
 # READ THE INSTANCE FROM CSV FILE AND GENERATE THE JSON.
 def read_instance():
@@ -80,10 +74,9 @@ def aws_running(ec2):
             'Amazon-Ssm-Agent_Version': '',
             'Falcon-Sensor_Status': '',
             'Falcon-Sensor_Version': '',
-            'OSVersion':'',
-            'loginuser':'',
+            'OSVersion': '',
+            'loginuser': '',
             }
-
         if ec2info[instance.id]['SSHKeyName'] == None:
             ec2info[instance.id]['ConnectionStatus']  = False
             ec2info[instance.id]['OSVersion']  = "Instance ID: {} - SSH Key pair is not attached".format(ec2info[instance.id]['ID'])
@@ -96,7 +89,7 @@ def aws_running(ec2):
                 else:
                     keypath = ec2info[instance.id]['SSHKeyName']
 
-                sshkeypath = "PEM/{}.pem".format(keypath)
+                sshkeypath = "../PEM/{}.pem".format(keypath)
                 keystore[instance.id] = sshkeypath
 
                 if os.path.isfile(sshkeypath):
@@ -115,7 +108,6 @@ def aws_running(ec2):
 
 
 def login_check(ec2info, keystore):
-    #hosts = ['13.232.227.245', '15.206.174.179']
 
     hosts = []
     host_config = []
@@ -142,22 +134,20 @@ def login_check(ec2info, keystore):
         client.join(output)
         for host_out in output:
             # print(host_out.stdout)
-            if host_out:
-                for line in host_out.stdout:
-                    t_var = ast.literal_eval(line.encode('utf-8').decode('ascii', 'ignore'))
-                    host_result[t_var['instance_id']] = t_var
-                    '''
-                    counter = counter + 1
-                    if counter == 1:
-                        host_result[line] = ""
-                        second_var = line
+            for line in host_out.stdout:
+                t_var = ast.literal_eval(line.encode('utf-8').decode('ascii', 'ignore'))
+                host_result[t_var['instance_id']] = t_var
+                '''
+                counter = counter + 1
+                if counter == 1:
+                    host_result[line] = ""
+                    second_var = line
 
-                    elif counter == 2:
-                        host_result[second_var] = line
-                        counter = 0
-                        second_var = ""
-                    '''
-        #print(json.dumps(host_result))
+                elif counter == 2:
+                    host_result[second_var] = line
+                    counter = 0
+                    second_var = ""
+                '''
 
     return host_result
 
@@ -173,8 +163,6 @@ def login(ec2info, keystore):
             ConnectionStatus, username = ServerConnection(hostip, key, ConnectionStatus)
             ec2info[connect]['loginuser'] = username
             ec2info[connect]['ConnectionStatus'] = ConnectionStatus
-
-    #print("may i know ", ec2info)
 
 def ServerConnection(hostip, keystore, ConnectionStatus):
     loginuser = {'ubuntu', 'ec2-user', 'admin', 'dbadmin'}
@@ -223,7 +211,6 @@ def misc():
     # environment = boto3.client('sts').get_caller_identity().get('Account')
     # Account Details
     #environments = {
-    #'330033715166': 'abcd',
     #}
     # Report File
     report_name = 'Package_Detected_Scanned_Hosts_List.csv'
@@ -238,8 +225,6 @@ def misc():
 # Field Merger
 def merger(ec2info, host_result):
     for key, value in ec2info.items():
-        #print(key, value)
-        #print(host_result)
         if ec2info[key]['ConnectionStatus'] == True:
 
                 if key in host_result.keys():
@@ -281,30 +266,14 @@ def csvreport(ec2info_final):
 # Main Program
 def main():
     ec2 = boto3.resource('ec2')
-
-    # Read Instance ID
-    # inst_id = read_instance()
-
-    # aws Running status
     ec2info, keystore = aws_running(ec2)
-
-    # login method calling
-    # ec2info = login(ec2info, keystore)
-
-    #print("ec2info", ec2info)
-    #print("keystore", keystore)
 
     login(ec2info, keystore)
     #print("ec2info", ec2info)
 
     host_result = login_check(ec2info, keystore)
 
-    #print("host_result", host_result)
-
-    # Merger Method Calling
     ec2info_final = merger(ec2info, host_result)
-
-    #print("ecinfo_final", ec2info_final)
 
     # Report Generation
     print("Generating Report")
